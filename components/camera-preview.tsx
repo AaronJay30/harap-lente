@@ -125,18 +125,6 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                         <Play className="mr-3 h-6 w-6" />
                         Start Photo Session
                     </Button>
-
-                    <div className="bg-amber-100 p-4 rounded-lg border border-amber-300">
-                        <p className="text-amber-800 font-medium mb-2">
-                            📸 What happens next:
-                        </p>
-                        <ul className="text-amber-700 text-sm space-y-1">
-                            <li>• 10 photos will be taken automatically</li>
-                            <li>• 10-second countdown between each photo</li>
-                            <li>• Strike different poses for variety!</li>
-                            <li>• Have fun and be creative!</li>
-                        </ul>
-                    </div>
                 </div>
             </div>
         </div>

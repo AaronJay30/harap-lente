@@ -73,7 +73,7 @@ export function PhotoCapture({ onPhotosComplete }: PhotoCaptureProps) {
     const [sessionComplete, setSessionComplete] = useState(false);
     const [confirmed, setConfirmed] = useState(false);
 
-    const totalPhotos = 6;
+    const totalPhotos = 5;
     // Allow countdownTime to be set via prop, default to 10
     const countdownTime =
         typeof arguments[0]?.countdownTime === "number"
