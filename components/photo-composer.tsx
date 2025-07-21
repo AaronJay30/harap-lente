@@ -37,16 +37,16 @@ export function PhotoComposer({
         let stripHeight = 1200;
         if (templateId.includes("1x3") || templateId.includes("1x4")) {
             // Original: 2210x6250, aspect ≈ 0.3536
-            stripWidth = 340;
+            stripWidth = 800;
             stripHeight = Math.round(stripWidth * (6250 / 2210)); // ≈ 1132
         } else if (templateId.includes("1x2")) {
-            // Original: 350x600, aspect ≈ 0.583
-            stripWidth = 350;
-            stripHeight = Math.round(stripWidth * (600 / 350)); // ≈ 600
+            // Updated: 3281x6250, aspect ≈ 0.525
+            stripWidth = 900;
+            stripHeight = Math.round(stripWidth * (6250 / 3281));
         } else {
-            // Default aspect
-            stripWidth = 350;
-            stripHeight = 300;
+            // Updated: 3875x5222, aspect ≈ 0.742
+            stripWidth = 900;
+            stripHeight = Math.round(stripWidth * (5222 / 3875));
         }
 
         canvas.width = stripWidth;

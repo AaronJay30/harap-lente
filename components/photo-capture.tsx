@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { ref, set } from "firebase/database";
+import { database } from "@/lib/firebaseConfig";
 import { Camera, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,9 +10,14 @@ import { Progress } from "@/components/ui/progress";
 interface PhotoCaptureProps {
     onPhotosComplete: (photos: string[]) => void;
     countdownTime?: number;
+    photoCount?: number;
 }
 
-export function PhotoCapture({ onPhotosComplete }: PhotoCaptureProps) {
+export function PhotoCapture({
+    onPhotosComplete,
+    countdownTime = 10,
+    photoCount = 5,
+}: PhotoCaptureProps) {
     // Remove expired photos from localStorage on mount
     useEffect(() => {
         try {
@@ -44,14 +51,14 @@ export function PhotoCapture({ onPhotosComplete }: PhotoCaptureProps) {
                 const logo = new window.Image();
                 logo.src = "/images/harap-lente-logo.png";
                 logo.onload = () => {
-                    // Place logo at lower right, scale to 20% width
-                    const logoWidth = img.width * 0.2;
+                    // Place logo at lower right, offset -right-5 (move 5px outside the right edge) and move it down by 5px
+                    const logoWidth = 208; // 13rem * 16px
                     const logoHeight = logo.height * (logoWidth / logo.width);
                     ctx.globalAlpha = 0.9;
                     ctx.drawImage(
                         logo,
-                        img.width - logoWidth - 20,
-                        img.height - logoHeight - 20,
+                        img.width - logoWidth + 30, // move 5px outside the right edge
+                        img.height - logoHeight + 5,
                         logoWidth,
                         logoHeight
                     );
@@ -73,12 +80,7 @@ export function PhotoCapture({ onPhotosComplete }: PhotoCaptureProps) {
     const [sessionComplete, setSessionComplete] = useState(false);
     const [confirmed, setConfirmed] = useState(false);
 
-    const totalPhotos = 5;
-    // Allow countdownTime to be set via prop, default to 10
-    const countdownTime =
-        typeof arguments[0]?.countdownTime === "number"
-            ? arguments[0].countdownTime
-            : 10;
+    const totalPhotos = Math.max(1, Math.min(10, photoCount));
 
     const [videoReady, setVideoReady] = useState(false);
 
@@ -201,18 +203,25 @@ export function PhotoCapture({ onPhotosComplete }: PhotoCaptureProps) {
     };
 
     // Handler for confirming and proceeding
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         setConfirmed(true);
-        // Save captured photos to localStorage with 1 day expiration
-        try {
-            const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 1 day in ms
-            const payload = {
-                photos: capturedPhotos,
-                expiresAt,
-            };
-            localStorage.setItem("harapLentePhotos", JSON.stringify(payload));
-        } catch (e) {
-            console.error("Failed to save photos to localStorage", e);
+        // Save captured photos to Firebase
+        const sessionId = localStorage.getItem("harapLenteSessionId");
+        if (sessionId) {
+            const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+            try {
+                await set(
+                    ref(database, `sessions/${sessionId}/photos`),
+                    capturedPhotos
+                );
+                await set(
+                    ref(database, `sessions/${sessionId}/expiresAt`),
+                    expiresAt
+                );
+                console.log("Photos saved to Firebase for session", sessionId);
+            } catch (err) {
+                console.error("Error saving photos to Firebase:", err);
+            }
         }
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
@@ -315,7 +324,7 @@ export function PhotoCapture({ onPhotosComplete }: PhotoCaptureProps) {
                             <img
                                 src="/images/harap-lente-logo.png"
                                 alt="Harap Lente Logo"
-                                className="absolute bottom-2 right-2 w-32 h-auto opacity-90 drop-shadow-lg pointer-events-none"
+                                className="absolute bottom-2 -right-5 w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
                             />
                         </div>
                     </CardContent>

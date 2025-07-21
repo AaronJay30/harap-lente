@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PhotoComposer } from "@/components/photo-composer";
+import { database } from "@/lib/firebaseConfig";
+import { ref, set } from "firebase/database";
 
 interface PhotoSelectorProps {
     photos: string[];
@@ -46,16 +48,18 @@ export function PhotoSelector({
 
     const isSelected = (photo: string) => selectedPhotos.includes(photo);
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (compositeImage) {
-            try {
-                localStorage.setItem(
-                    "harapLenteCompositeImage",
-                    compositeImage
-                );
-            } catch (e) {
-                // Handle localStorage error (quota exceeded, etc.)
-                console.error("Failed to save image to localStorage", e);
+            const sessionId = localStorage.getItem("harapLenteSessionId");
+            if (sessionId) {
+                try {
+                    await set(
+                        ref(database, `sessions/${sessionId}/compositeImage`),
+                        compositeImage
+                    );
+                } catch (e) {
+                    console.error("Failed to save image to Firebase", e);
+                }
             }
             onConfirm(selectedPhotos);
         }
@@ -82,7 +86,16 @@ export function PhotoSelector({
                     <h2 className="text-xl font-bold text-amber-900 mb-4">
                         Select Photos
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div
+                        className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-6 rounded-xl"
+                        style={{
+                            background:
+                                '#fef3c7 url(\'data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.12"/></svg>\')',
+                            border: "4px dashed #f59e0b ",
+                            boxShadow: "0 4px 24px 0 rgba(220,38,38,0.08)",
+                            position: "relative",
+                        }}
+                    >
                         {photos.map((photo, idx) => (
                             <Card
                                 key={idx}
@@ -91,6 +104,12 @@ export function PhotoSelector({
                                         ? "border-amber-600 ring-2 ring-amber-500"
                                         : "border-gray-300 hover:border-amber-300"
                                 }`}
+                                style={{
+                                    borderStyle: "dashed",
+                                    borderColor: isSelected(photo)
+                                        ? "#f59e0b"
+                                        : "#fde68a",
+                                }}
                                 onClick={() => handleSelect(photo)}
                             >
                                 <CardContent className="p-2 flex items-center justify-center aspect-square">

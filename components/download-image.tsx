@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ref, onValue, remove } from "firebase/database";
+import { database } from "@/lib/firebaseConfig";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 
@@ -9,12 +11,26 @@ export function DownloadImage() {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
-        try {
-            const url = localStorage.getItem("harapLenteCompositeImage");
-            if (url) setImageUrl(url);
-        } catch (e) {
+        const sessionId = localStorage.getItem("harapLenteSessionId");
+        if (!sessionId) {
             setImageUrl("");
+            return;
         }
+        const compositeRef = ref(
+            database,
+            `sessions/${sessionId}/compositeImage`
+        );
+        onValue(compositeRef, (snapshot) => {
+            const url = snapshot.val();
+            if (url) setImageUrl(url);
+            else setImageUrl("");
+        });
+        // Remove selectedPhotos from Firebase (cleanup)
+        const selectedRef = ref(
+            database,
+            `sessions/${sessionId}/selectedPhotos`
+        );
+        remove(selectedRef);
     }, []);
 
     const handleDownload = () => {
@@ -37,15 +53,19 @@ export function DownloadImage() {
                             <img
                                 src={imageUrl}
                                 alt="Photo strip preview"
-                                className="h-[35rem] w-auto rounded-xl shadow-xl border-4 border-amber-200 hover:border-orange-400 transition-all duration-200 hover:scale-105 bg-white cursor-pointer"
+                                className="w-[800px] h-auto rounded-xl shadow-xl border-4 border-amber-200 hover:border-orange-400 transition-all duration-200 hover:scale-105 bg-white cursor-pointer"
                                 style={{
-                                    aspectRatio: "1/3",
+                                    maxWidth: "100%",
+                                    height: "auto",
                                     objectFit: "contain",
                                 }}
                                 onClick={() => setShowModal(true)}
                             />
                         ) : (
-                            <div className="h-56 md:h-72 w-auto aspect-[1/3] bg-gradient-to-br from-amber-100 to-orange-200 flex items-center justify-center rounded-xl border-4 border-dashed border-amber-300 animate-pulse">
+                            <div
+                                className="w-[800px] h-auto aspect-[2210/6250] bg-gradient-to-br from-amber-100 to-orange-200 flex items-center justify-center rounded-xl border-4 border-dashed border-amber-300 animate-pulse"
+                                style={{ maxWidth: "100%" }}
+                            >
                                 <span className="text-amber-500 text-lg">
                                     No image found
                                 </span>
@@ -76,13 +96,14 @@ export function DownloadImage() {
                         >
                             &times;
                         </button>
-                        <div className="flex items-center justify-center w-full h-[60vh] md:h-[80vh]">
+                        <div className="flex items-center justify-center w-full">
                             <img
                                 src={imageUrl}
                                 alt="Photo strip preview large"
-                                className="h-full max-h-[60vh] md:max-h-[80vh] w-auto rounded-xl shadow-xl border-4 border-amber-200 bg-white"
+                                className="w-[800px] h-auto rounded-xl shadow-xl border-4 border-amber-200 bg-white"
                                 style={{
-                                    aspectRatio: "1/3",
+                                    maxWidth: "100%",
+                                    height: "auto",
                                     objectFit: "contain",
                                 }}
                             />

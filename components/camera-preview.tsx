@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface CameraPreviewProps {
-    onStartCapture: () => void;
+    onStartCapture: (photoCount: number, timer: number) => void;
 }
 
 export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
+    const [photoCount, setPhotoCount] = useState(5);
+    const [timer, setTimer] = useState(4);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [cameraReady, setCameraReady] = useState(false);
@@ -110,21 +112,95 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                             <img
                                 src="/images/harap-lente-logo.png"
                                 alt="Harap Lente Logo"
-                                className="absolute bottom-2 right-2 w-32 h-auto opacity-90 drop-shadow-lg pointer-events-none"
+                                className="absolute bottom-2 -right-5 w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
                             />
                         </div>
                     </CardContent>
                 </Card>
 
-                <div className="text-center space-y-4">
+                <div className="text-center space-y-6">
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-6">
+                        <div className="p-6 rounded-xl border-2 border-amber-900 shadow-lg bg-white/80">
+                            <label
+                                htmlFor="photoCount"
+                                className="block text-base font-semibold text-amber-900 mb-2"
+                            >
+                                Number of Photos
+                            </label>
+                            <input
+                                id="photoCount"
+                                type="number"
+                                min={4}
+                                max={10}
+                                value={photoCount}
+                                onChange={(e) =>
+                                    setPhotoCount(
+                                        Math.max(
+                                            4,
+                                            Math.min(10, Number(e.target.value))
+                                        )
+                                    )
+                                }
+                                className="border border-amber-800 rounded-lg px-4 py-2 text-base w-32 text-center bg-white text-amber-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700"
+                            />
+                        </div>
+                        <div className="p-6 rounded-xl border-2 border-amber-900 shadow-lg bg-white/80">
+                            <label
+                                htmlFor="timer"
+                                className="block text-base font-semibold text-amber-900 mb-2"
+                            >
+                                Timer per Photo (seconds)
+                            </label>
+                            <input
+                                id="timer"
+                                type="number"
+                                min={2}
+                                max={10}
+                                value={timer}
+                                onChange={(e) =>
+                                    setTimer(
+                                        Math.max(
+                                            0,
+                                            Math.min(30, Number(e.target.value))
+                                        )
+                                    )
+                                }
+                                className="border border-amber-800 rounded-lg px-4 py-2 text-base w-32 text-center bg-white text-amber-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700"
+                            />
+                        </div>
+                    </div>
                     <Button
-                        onClick={onStartCapture}
+                        onClick={() => onStartCapture(photoCount, timer)}
                         disabled={!cameraReady}
-                        className="bg-amber-800 hover:bg-amber-700 text-white px-12 py-4 text-xl font-medium tracking-wide shadow-lg disabled:opacity-50"
+                        className="bg-amber-900 hover:bg-amber-800 text-white px-12 py-4 text-xl font-semibold tracking-wide shadow-lg disabled:opacity-50 border-2 border-amber-900"
                     >
                         <Play className="mr-3 h-6 w-6" />
                         Start Photo Session
                     </Button>
+                    <style jsx>{`
+                        .retro-box {
+                            font-family: "Courier New", Courier, monospace;
+                            box-shadow: 0 4px 24px 0 rgba(255, 193, 7, 0.15);
+                        }
+                        .retro-label {
+                            letter-spacing: 2px;
+                            text-shadow: 1px 1px 0 #fff8e1;
+                        }
+                        .retro-input {
+                            border-radius: 8px;
+                            background: repeating-linear-gradient(
+                                135deg,
+                                #fff8e1,
+                                #ffe082 10px,
+                                #fff8e1 20px
+                            );
+                            font-size: 2rem;
+                        }
+                        .retro-btn {
+                            font-family: "Courier New", Courier, monospace;
+                            letter-spacing: 2px;
+                        }
+                    `}</style>
                 </div>
             </div>
         </div>

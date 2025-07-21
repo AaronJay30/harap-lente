@@ -33,7 +33,7 @@ export default function HomePage() {
                             alt="Harap Lente"
                             width={800}
                             height={400}
-                            className="mx-auto w-64 md:w-80 lg:w-96 h-auto filter drop-shadow-2xl"
+                            className="mx-auto w-64 md:w-80 lg:w-[42rem] mb-0 lg:-mb-14 h-auto filter drop-shadow-2xl"
                             priority
                         />
                     </div>
@@ -70,15 +70,17 @@ export default function HomePage() {
                         </Button>
                     </Link>
 
-                    <Link href="/friends" className="flex-1">
-                        <Button
-                            className="w-full h-14 md:h-16 bg-orange-700 hover:bg-orange-600 text-white text-base md:text-lg font-medium tracking-wide shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-orange-800 rounded-lg hover:scale-105"
-                            disabled={isLoading}
-                        >
-                            <Users className="mr-2 md:mr-3 h-5 w-5 md:h-6 md:w-6" />
-                            GROUP BOOTH
-                        </Button>
-                    </Link>
+                    {process.env.NEXT_PUBLIC_SHOW_WITH_FRIENDS === "true" && (
+                        <Link href="/friends" className="flex-1">
+                            <Button
+                                className="w-full h-14 md:h-16 bg-orange-700 hover:bg-orange-600 text-white text-base md:text-lg font-medium tracking-wide shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-orange-800 rounded-lg hover:scale-105"
+                                disabled={isLoading}
+                            >
+                                <Users className="mr-2 md:mr-3 h-5 w-5 md:h-6 md:w-6" />
+                                GROUP BOOTH
+                            </Button>
+                        </Link>
+                    )}
                 </div>
 
                 {/* Animated Decorative Elements */}

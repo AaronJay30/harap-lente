@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ref, set, get, remove, onValue } from "firebase/database";
+import { database } from "@/lib/firebaseConfig";
 import {
     RotateCcw,
     Download,
@@ -34,6 +36,8 @@ type SessionStep =
     | "download";
 
 export default function SoloPage() {
+    // Generate or retrieve session ID
+    const [sessionId, setSessionId] = useState<string>("");
     const [currentStep, setCurrentStep] = useState<SessionStep>("preview");
     const [selectedTemplate, setSelectedTemplate] = useState<string>("");
     const [selectedSubTemplate, setSelectedSubTemplate] = useState<string>("");
@@ -41,86 +45,157 @@ export default function SoloPage() {
     const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
     const [compositeImage, setCompositeImage] = useState<string>("");
 
+    useEffect(() => {
+        let id = localStorage.getItem("harapLenteSessionId");
+        if (!id) {
+            id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            localStorage.setItem("harapLenteSessionId", id);
+        }
+        setSessionId(id);
+    }, []);
+
+    // Create initial session record in Firebase when sessionId is set
+    useEffect(() => {
+        if (!sessionId) return;
+        const sessionRef = ref(database, `sessions/${sessionId}`);
+        get(sessionRef).then((snapshot) => {
+            if (!snapshot.exists()) {
+                set(sessionRef, {
+                    createdAt: Date.now(),
+                    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+                })
+                    .then(() => {
+                        console.log("Session created in Firebase", sessionId);
+                    })
+                    .catch((err) => {
+                        console.error(
+                            "Error creating session in Firebase:",
+                            err
+                        );
+                    });
+            } else {
+                console.log("Session already exists in Firebase", sessionId);
+            }
+        });
+    }, [sessionId]);
+
     // On mount, check for valid localStorage photos, template, and style
     useEffect(() => {
-        try {
-            // Redirect to download if composite image exists
-            const composite = localStorage.getItem("harapLenteCompositeImage");
-            if (composite) {
+        if (!sessionId) return;
+        // Load session data from Firebase
+        const sessionRef = ref(database, `sessions/${sessionId}`);
+        onValue(sessionRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            if (data.compositeImage) {
+                setCompositeImage(data.compositeImage);
                 setCurrentStep("download");
                 return;
             }
-            const raw = localStorage.getItem("harapLentePhotos");
-            const templateRaw = localStorage.getItem("harapLenteTemplate");
-            const styleRaw = localStorage.getItem("harapLenteStyle");
-            if (raw) {
-                const payload = JSON.parse(raw);
-                if (
-                    payload.expiresAt &&
-                    Date.now() < payload.expiresAt &&
-                    Array.isArray(payload.photos) &&
-                    payload.photos.length > 0
-                ) {
-                    setCapturedPhotos(payload.photos);
-                    // If template and style are saved, restore them and go to select step
-                    if (templateRaw && styleRaw) {
-                        setSelectedTemplate(templateRaw);
-                        setSelectedSubTemplate(styleRaw);
-                        setCurrentStep("select");
-                    } else {
-                        setCurrentStep("template");
-                    }
-                } else if (
-                    payload.expiresAt &&
-                    Date.now() > payload.expiresAt
-                ) {
-                    localStorage.removeItem("harapLentePhotos");
-                    localStorage.removeItem("harapLenteTemplate");
-                    localStorage.removeItem("harapLenteStyle");
+            if (Array.isArray(data.photos) && data.photos.length > 0) {
+                setCapturedPhotos(data.photos);
+                if (!data.template) {
+                    setCurrentStep("template");
+                } else if (!data.style) {
+                    setSelectedTemplate(data.template);
+                    setCurrentStep("subtemplate");
+                } else {
+                    setSelectedTemplate(data.template);
+                    setSelectedSubTemplate(data.style);
+                    setCurrentStep("select");
                 }
             }
-        } catch (e) {
-            // Ignore JSON parse errors
-        }
-    }, []);
+        });
+    }, [sessionId]);
 
-    const handleStartCapture = () => {
+    const [photoCount, setPhotoCount] = useState(5);
+    const [timer, setTimer] = useState(4);
+    const handleStartCapture = (count: number, timerValue: number) => {
+        setPhotoCount(count);
+        setTimer(timerValue);
         setCurrentStep("capture");
     };
 
-    const handlePhotosComplete = (photos: string[]) => {
+    const handlePhotosComplete = async (photos: string[]) => {
         setCapturedPhotos(photos);
+        // Save to Firebase
+        if (sessionId) {
+            await set(ref(database, `sessions/${sessionId}`), {
+                photos,
+                createdAt: Date.now(),
+                expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+            });
+        }
         setCurrentStep("template");
     };
 
-    const handleTemplateSelect = (templateId: string) => {
+    const handleTemplateSelect = async (templateId: string) => {
         setSelectedTemplate(templateId);
-        localStorage.setItem("harapLenteTemplate", templateId);
+        if (sessionId) {
+            await set(
+                ref(database, `sessions/${sessionId}/template`),
+                templateId
+            );
+        }
         setCurrentStep("subtemplate");
     };
 
-    const handleSubTemplateSelect = (subTemplateId: string) => {
+    const handleSubTemplateSelect = async (subTemplateId: string) => {
         setSelectedSubTemplate(subTemplateId);
-        localStorage.setItem("harapLenteStyle", subTemplateId);
+        if (sessionId) {
+            await set(
+                ref(database, `sessions/${sessionId}/style`),
+                subTemplateId
+            );
+        }
         setCurrentStep("select");
     };
 
-    const handlePhotoSelectionConfirm = (photos: string[]) => {
+    const handlePhotoSelectionConfirm = async (photos: string[]) => {
         setSelectedPhotos(photos);
+        if (sessionId) {
+            await set(
+                ref(database, `sessions/${sessionId}/selectedPhotos`),
+                photos
+            );
+        }
         setCurrentStep("download");
     };
 
-    const handleReset = () => {
+    const handleReset = async () => {
         setCapturedPhotos([]);
         setCompositeImage("");
         setCurrentStep("preview");
         setSelectedTemplate("");
         setSelectedSubTemplate("");
-        localStorage.removeItem("harapLentePhotos");
-        localStorage.removeItem("harapLenteTemplate");
-        localStorage.removeItem("harapLenteStyle");
-        localStorage.removeItem("harapLenteCompositeImage");
+        if (sessionId) {
+            await remove(ref(database, `sessions/${sessionId}/photos`));
+            await remove(ref(database, `sessions/${sessionId}/template`));
+            await remove(ref(database, `sessions/${sessionId}/style`));
+            await remove(ref(database, `sessions/${sessionId}/selectedPhotos`));
+            await remove(ref(database, `sessions/${sessionId}/compositeImage`));
+        }
+        localStorage.removeItem("harapLenteSessionId");
     };
+    // Cleanup: Remove sessions older than 1 day
+    useEffect(() => {
+        const cleanupOldSessions = async () => {
+            const sessionsRef = ref(database, "sessions");
+            onValue(sessionsRef, (snapshot) => {
+                const sessions = snapshot.val();
+                if (!sessions) return;
+                Object.entries(sessions).forEach(([id, data]: any) => {
+                    if (
+                        data.createdAt &&
+                        Date.now() - data.createdAt > 24 * 60 * 60 * 1000
+                    ) {
+                        remove(ref(database, `sessions/${id}`));
+                    }
+                });
+            });
+        };
+        cleanupOldSessions();
+    }, []);
 
     const getStepTitle = () => {
         switch (currentStep) {
@@ -186,7 +261,6 @@ export default function SoloPage() {
 
             {/* Vintage Footer */}
             <div className="absolute bottom-2 md:bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none">
-                <br />
                 <p className="text-xs text-amber-600 tracking-[0.2em] md:tracking-[0.3em] uppercase font-bold text-center px-4 pt-5">
                     {"Say Cheese!"} Since Forever
                 </p>
@@ -222,16 +296,23 @@ export default function SoloPage() {
                             <RotateCcw className="h-4 w-4 mr-2" />
                             <span className="hidden md:inline">Reset</span>
                         </Button>
-                        <Link href="/">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="bg-transparent border-white text-white hover:bg-white hover:text-amber-900"
-                            >
-                                <Home className="h-4 w-4 mr-2" />
-                                <span className="hidden md:inline">Home</span>
-                            </Button>
-                        </Link>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-transparent border-white text-white hover:bg-white hover:text-amber-900"
+                            onClick={async () => {
+                                if (sessionId) {
+                                    await remove(
+                                        ref(database, `sessions/${sessionId}`)
+                                    );
+                                }
+                                localStorage.removeItem("harapLenteSessionId");
+                                window.location.href = "/";
+                            }}
+                        >
+                            <Home className="h-4 w-4 mr-2" />
+                            <span className="hidden md:inline">Home</span>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -415,7 +496,8 @@ export default function SoloPage() {
                 {currentStep === "capture" && (
                     <PhotoCapture
                         onPhotosComplete={handlePhotosComplete}
-                        countdownTime={2}
+                        countdownTime={timer}
+                        photoCount={photoCount}
                     />
                 )}
 
