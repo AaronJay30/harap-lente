@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ref, onValue, remove } from "firebase/database";
 import { database } from "@/lib/firebaseConfig";
 import { Button } from "@/components/ui/button";
@@ -9,28 +9,47 @@ import { Download } from "lucide-react";
 export function DownloadImage() {
     const [imageUrl, setImageUrl] = useState<string>("");
     const [showModal, setShowModal] = useState(false);
-
+    const [template, setTemplate] = useState<string>("");
+    const modalRef = useRef<HTMLDivElement>(null);
+    
     useEffect(() => {
         const sessionId = localStorage.getItem("harapLenteSessionId");
         if (!sessionId) {
             setImageUrl("");
             return;
         }
-        const compositeRef = ref(
-            database,
-            `sessions/${sessionId}/compositeImage`
-        );
-        onValue(compositeRef, (snapshot) => {
-            const url = snapshot.val();
-            if (url) setImageUrl(url);
-            else setImageUrl("");
-        });
-        // Remove selectedPhotos from Firebase (cleanup)
-        const selectedRef = ref(
-            database,
-            `sessions/${sessionId}/selectedPhotos`
-        );
-        remove(selectedRef);
+        const OFFLINE_MODE = process.env.NEXT_PUBLIC_OFFLINE_MODE === "true";
+        if (OFFLINE_MODE) {
+            fetch(`/api/session?sessionId=${sessionId}`)
+                .then((res) => res.json())
+                .then((result) => {
+                    const data = result.data || {};
+                    setImageUrl(data.compositeImage || "");
+                    setTemplate(data.template || "");
+                });
+        } else {
+            const compositeRef = ref(
+                database,
+                `sessions/${sessionId}/compositeImage`
+            );
+            onValue(compositeRef, (snapshot) => {
+                const url = snapshot.val();
+                if (url) setImageUrl(url);
+                else setImageUrl("");
+            });
+            // Get template type
+            const templateRef = ref(database, `sessions/${sessionId}/template`);
+            onValue(templateRef, (snapshot) => {
+                const t = snapshot.val();
+                if (t) setTemplate(t);
+            });
+            // Remove selectedPhotos from Firebase (cleanup)
+            const selectedRef = ref(
+                database,
+                `sessions/${sessionId}/selectedPhotos`
+            );
+            remove(selectedRef);
+        }
     }, []);
 
     const handleDownload = () => {
@@ -53,10 +72,17 @@ export function DownloadImage() {
                             <img
                                 src={imageUrl}
                                 alt="Photo strip preview"
-                                className="w-[800px] h-auto rounded-xl shadow-xl border-4 border-amber-200 hover:border-orange-400 transition-all duration-200 hover:scale-105 bg-white cursor-pointer"
+                                className="rounded-xl shadow-xl border-4 border-amber-200 hover:border-orange-400 transition-all duration-200 hover:scale-105 bg-white cursor-pointer"
                                 style={{
                                     maxWidth: "100%",
-                                    height: "auto",
+                                    height:
+                                        template === "1x4-strip"
+                                            ? "975px"
+                                            : "auto",
+                                    width:
+                                        template === "1x4-strip"
+                                            ? "350px"
+                                            : "800px",
                                     objectFit: "contain",
                                 }}
                                 onClick={() => setShowModal(true)}
@@ -88,8 +114,21 @@ export function DownloadImage() {
             </div>
             {/* Modal for preview */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-                    <div className="relative bg-white rounded-xl shadow-2xl p-4 flex flex-col items-center w-full max-w-lg mx-4">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+                    onMouseDown={(e) => {
+                        if (
+                            modalRef.current &&
+                            !modalRef.current.contains(e.target as Node)
+                        ) {
+                            setShowModal(false);
+                        }
+                    }}
+                >
+                    <div
+                        ref={modalRef}
+                        className="relative bg-white rounded-xl shadow-2xl p-4 flex flex-col items-center w-full max-w-lg mx-4"
+                    >
                         <button
                             className="absolute top-2 right-2 text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-full px-3 py-1 font-bold text-lg"
                             onClick={() => setShowModal(false)}
@@ -100,10 +139,17 @@ export function DownloadImage() {
                             <img
                                 src={imageUrl}
                                 alt="Photo strip preview large"
-                                className="w-[800px] h-auto rounded-xl shadow-xl border-4 border-amber-200 bg-white"
+                                className="rounded-xl shadow-xl border-4 border-amber-200 bg-white"
                                 style={{
                                     maxWidth: "100%",
-                                    height: "auto",
+                                    height:
+                                        template === "1x4-strip"
+                                            ? "975px"
+                                            : "auto",
+                                    width:
+                                        template === "1x4-strip"
+                                            ? "350px"
+                                            : "800px",
                                     objectFit: "contain",
                                 }}
                             />

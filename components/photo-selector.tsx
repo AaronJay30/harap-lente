@@ -52,13 +52,36 @@ export function PhotoSelector({
         if (compositeImage) {
             const sessionId = localStorage.getItem("harapLenteSessionId");
             if (sessionId) {
-                try {
-                    await set(
-                        ref(database, `sessions/${sessionId}/compositeImage`),
-                        compositeImage
-                    );
-                } catch (e) {
-                    console.error("Failed to save image to Firebase", e);
+                const OFFLINE_MODE =
+                    process.env.NEXT_PUBLIC_OFFLINE_MODE === "true";
+                if (OFFLINE_MODE) {
+                    try {
+                        await fetch("/api/session", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                sessionId,
+                                data: { compositeImage },
+                            }),
+                        });
+                    } catch (e) {
+                        console.error(
+                            "Failed to save image to offline file",
+                            e
+                        );
+                    }
+                } else {
+                    try {
+                        await set(
+                            ref(
+                                database,
+                                `sessions/${sessionId}/compositeImage`
+                            ),
+                            compositeImage
+                        );
+                    } catch (e) {
+                        console.error("Failed to save image to Firebase", e);
+                    }
                 }
             }
             onConfirm(selectedPhotos);
