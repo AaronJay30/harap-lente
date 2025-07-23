@@ -12,6 +12,8 @@ interface CameraPreviewProps {
 export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
     const [photoCount, setPhotoCount] = useState(5);
     const [timer, setTimer] = useState(4);
+    const [photoCountInput, setPhotoCountInput] = useState("5");
+    const [timerInput, setTimerInput] = useState("4");
     const videoRef = useRef<HTMLVideoElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [cameraReady, setCameraReady] = useState(false);
@@ -67,6 +69,28 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
         };
     }, []);
 
+    // Helper to clamp and update state on blur or submit
+    const handlePhotoCountBlur = () => {
+        let val = parseInt(photoCountInput, 10);
+        if (isNaN(val)) val = 4;
+        val = Math.max(4, Math.min(10, val));
+        setPhotoCount(val);
+        setPhotoCountInput(val.toString());
+    };
+    const handleTimerBlur = () => {
+        let val = parseInt(timerInput, 10);
+        if (isNaN(val)) val = 2;
+        val = Math.max(2, Math.min(10, val));
+        setTimer(val);
+        setTimerInput(val.toString());
+    };
+
+    const handleStartCapture = () => {
+        handlePhotoCountBlur();
+        handleTimerBlur();
+        onStartCapture(photoCount, timer);
+    };
+
     return (
         <div className="py-8">
             <div className="text-center mb-6">
@@ -76,6 +100,14 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                 <p className="text-amber-700">
                     Position yourself in the camera and click start when ready
                 </p>
+                <Button
+                    onClick={handleStartCapture}
+                    disabled={!cameraReady}
+                    className="bg-amber-900 hover:bg-amber-800 text-white px-12 py-4 text-xl font-semibold tracking-wide shadow-lg disabled:opacity-50 border-2 border-amber-900 mt-4"
+                >
+                    <Play className="mr-3 h-6 w-6" />
+                    Start Photo Session
+                </Button>
             </div>
 
             <div className="max-w-2xl mx-auto">
@@ -112,15 +144,15 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                             <img
                                 src="/images/harap-lente-logo.png"
                                 alt="Harap Lente Logo"
-                                className="absolute bottom-2 -right-5 w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
+                                className="absolute bottom-2 -right-2 md:-right-5 w-32 md:w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
                             />
                         </div>
                     </CardContent>
                 </Card>
 
                 <div className="text-center space-y-6">
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-6">
-                        <div className="p-6 rounded-xl border-2 border-amber-900 shadow-lg bg-white/80">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-4 md:gap-8 mb-6 w-full">
+                        <div className="flex-1 p-4 md:p-6 rounded-xl border-2 border-amber-900 shadow-lg bg-white/80">
                             <label
                                 htmlFor="photoCount"
                                 className="block text-base font-semibold text-amber-900 mb-2"
@@ -132,19 +164,19 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                                 type="number"
                                 min={4}
                                 max={10}
-                                value={photoCount}
+                                value={photoCountInput}
                                 onChange={(e) =>
-                                    setPhotoCount(
-                                        Math.max(
-                                            4,
-                                            Math.min(10, Number(e.target.value))
-                                        )
+                                    setPhotoCountInput(
+                                        e.target.value.replace(/[^0-9]/g, "")
                                     )
                                 }
-                                className="border border-amber-800 rounded-lg px-4 py-2 text-base w-32 text-center bg-white text-amber-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700"
+                                onBlur={handlePhotoCountBlur}
+                                className="border border-amber-800 rounded-lg px-4 py-3 text-lg w-full text-center bg-white text-amber-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700 transition"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                             />
                         </div>
-                        <div className="p-6 rounded-xl border-2 border-amber-900 shadow-lg bg-white/80">
+                        <div className="flex-1 p-4 md:p-6 rounded-xl border-2 border-amber-900 shadow-lg bg-white/80">
                             <label
                                 htmlFor="timer"
                                 className="block text-base font-semibold text-amber-900 mb-2"
@@ -156,27 +188,19 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                                 type="number"
                                 min={2}
                                 max={10}
-                                value={timer}
+                                value={timerInput}
                                 onChange={(e) =>
-                                    setTimer(
-                                        Math.max(
-                                            0,
-                                            Math.min(30, Number(e.target.value))
-                                        )
+                                    setTimerInput(
+                                        e.target.value.replace(/[^0-9]/g, "")
                                     )
                                 }
-                                className="border border-amber-800 rounded-lg px-4 py-2 text-base w-32 text-center bg-white text-amber-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700"
+                                onBlur={handleTimerBlur}
+                                className="border border-amber-800 rounded-lg px-4 py-3 text-lg w-full text-center bg-white text-amber-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-700 transition"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                             />
                         </div>
                     </div>
-                    <Button
-                        onClick={() => onStartCapture(photoCount, timer)}
-                        disabled={!cameraReady}
-                        className="bg-amber-900 hover:bg-amber-800 text-white px-12 py-4 text-xl font-semibold tracking-wide shadow-lg disabled:opacity-50 border-2 border-amber-900"
-                    >
-                        <Play className="mr-3 h-6 w-6" />
-                        Start Photo Session
-                    </Button>
                     <style jsx>{`
                         .retro-box {
                             font-family: "Courier New", Courier, monospace;

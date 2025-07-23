@@ -26,6 +26,7 @@ import {
 import { PhotoComposer } from "@/components/photo-composer";
 import { PhotoSelector } from "@/components/photo-selector";
 import { DownloadImage } from "@/components/download-image";
+const OFFLINE_MODE = process.env.NEXT_PUBLIC_OFFLINE_MODE === "true";
 
 type SessionStep =
     | "preview"
@@ -57,55 +58,113 @@ export default function SoloPage() {
     // Create initial session record in Firebase when sessionId is set
     useEffect(() => {
         if (!sessionId) return;
-        const sessionRef = ref(database, `sessions/${sessionId}`);
-        get(sessionRef).then((snapshot) => {
-            if (!snapshot.exists()) {
-                set(sessionRef, {
-                    createdAt: Date.now(),
-                    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-                })
-                    .then(() => {
-                        console.log("Session created in Firebase", sessionId);
+        if (OFFLINE_MODE) {
+            // Try to load session from file (GET /api/session)
+            fetch(`/api/session?sessionId=${sessionId}`)
+                .then((res) => res.json())
+                .then((result) => {
+                    if (result.data) {
+                        // Session exists
+                        // ...existing code for setting state from result.data...
+                    } else {
+                        // Create new session file
+                        fetch(`/api/session`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                sessionId,
+                                data: {
+                                    createdAt: Date.now(),
+                                    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+                                },
+                            }),
+                        });
+                    }
+                });
+        } else {
+            const sessionRef = ref(database, `sessions/${sessionId}`);
+            get(sessionRef).then((snapshot) => {
+                if (!snapshot.exists()) {
+                    set(sessionRef, {
+                        createdAt: Date.now(),
+                        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
                     })
-                    .catch((err) => {
-                        console.error(
-                            "Error creating session in Firebase:",
-                            err
-                        );
-                    });
-            } else {
-                console.log("Session already exists in Firebase", sessionId);
-            }
-        });
+                        .then(() => {
+                            console.log(
+                                "Session created in Firebase",
+                                sessionId
+                            );
+                        })
+                        .catch((err) => {
+                            console.error(
+                                "Error creating session in Firebase:",
+                                err
+                            );
+                        });
+                } else {
+                    console.log(
+                        "Session already exists in Firebase",
+                        sessionId
+                    );
+                }
+            });
+        }
     }, [sessionId]);
 
     // On mount, check for valid localStorage photos, template, and style
     useEffect(() => {
         if (!sessionId) return;
-        // Load session data from Firebase
-        const sessionRef = ref(database, `sessions/${sessionId}`);
-        onValue(sessionRef, (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-            if (data.compositeImage) {
-                setCompositeImage(data.compositeImage);
-                setCurrentStep("download");
-                return;
-            }
-            if (Array.isArray(data.photos) && data.photos.length > 0) {
-                setCapturedPhotos(data.photos);
-                if (!data.template) {
-                    setCurrentStep("template");
-                } else if (!data.style) {
-                    setSelectedTemplate(data.template);
-                    setCurrentStep("subtemplate");
-                } else {
-                    setSelectedTemplate(data.template);
-                    setSelectedSubTemplate(data.style);
-                    setCurrentStep("select");
+        if (OFFLINE_MODE) {
+            fetch(`/api/session?sessionId=${sessionId}`)
+                .then((res) => res.json())
+                .then((result) => {
+                    const data = result.data;
+                    if (!data) return;
+                    if (data.compositeImage) {
+                        setCompositeImage(data.compositeImage);
+                        setCurrentStep("download");
+                        return;
+                    }
+                    if (Array.isArray(data.photos) && data.photos.length > 0) {
+                        setCapturedPhotos(data.photos);
+                        if (!data.template) {
+                            setCurrentStep("template");
+                        } else if (!data.style) {
+                            setSelectedTemplate(data.template);
+                            setCurrentStep("subtemplate");
+                        } else {
+                            setSelectedTemplate(data.template);
+                            setSelectedSubTemplate(data.style);
+                            setCurrentStep("select");
+                        }
+                    }
+                });
+        } else {
+            // ...existing code...
+            const sessionRef = ref(database, `sessions/${sessionId}`);
+            onValue(sessionRef, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                if (data.compositeImage) {
+                    setCompositeImage(data.compositeImage);
+                    setCurrentStep("download");
+                    return;
                 }
-            }
-        });
+                if (Array.isArray(data.photos) && data.photos.length > 0) {
+                    setCapturedPhotos(data.photos);
+                    if (!data.template) {
+                        setCurrentStep("template");
+                    } else if (!data.style) {
+                        setSelectedTemplate(data.template);
+                        setCurrentStep("subtemplate");
+                    } else {
+                        setSelectedTemplate(data.template);
+                        setSelectedSubTemplate(data.style);
+                        setCurrentStep("select");
+                    }
+                }
+            });
+        }
     }, [sessionId]);
 
     const [photoCount, setPhotoCount] = useState(5);
@@ -118,13 +177,28 @@ export default function SoloPage() {
 
     const handlePhotosComplete = async (photos: string[]) => {
         setCapturedPhotos(photos);
-        // Save to Firebase
+        // Save to Firebase or file
         if (sessionId) {
-            await set(ref(database, `sessions/${sessionId}`), {
-                photos,
-                createdAt: Date.now(),
-                expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-            });
+            if (OFFLINE_MODE) {
+                await fetch(`/api/session`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sessionId,
+                        data: {
+                            photos,
+                            createdAt: Date.now(),
+                            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+                        },
+                    }),
+                });
+            } else {
+                await set(ref(database, `sessions/${sessionId}`), {
+                    photos,
+                    createdAt: Date.now(),
+                    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+                });
+            }
         }
         setCurrentStep("template");
     };
@@ -132,10 +206,23 @@ export default function SoloPage() {
     const handleTemplateSelect = async (templateId: string) => {
         setSelectedTemplate(templateId);
         if (sessionId) {
-            await set(
-                ref(database, `sessions/${sessionId}/template`),
-                templateId
-            );
+            if (OFFLINE_MODE) {
+                await fetch(`/api/session`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sessionId,
+                        data: {
+                            template: templateId,
+                        },
+                    }),
+                });
+            } else {
+                await set(
+                    ref(database, `sessions/${sessionId}/template`),
+                    templateId
+                );
+            }
         }
         setCurrentStep("subtemplate");
     };
@@ -143,10 +230,23 @@ export default function SoloPage() {
     const handleSubTemplateSelect = async (subTemplateId: string) => {
         setSelectedSubTemplate(subTemplateId);
         if (sessionId) {
-            await set(
-                ref(database, `sessions/${sessionId}/style`),
-                subTemplateId
-            );
+            if (OFFLINE_MODE) {
+                await fetch(`/api/session`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sessionId,
+                        data: {
+                            style: subTemplateId,
+                        },
+                    }),
+                });
+            } else {
+                await set(
+                    ref(database, `sessions/${sessionId}/style`),
+                    subTemplateId
+                );
+            }
         }
         setCurrentStep("select");
     };
@@ -154,10 +254,23 @@ export default function SoloPage() {
     const handlePhotoSelectionConfirm = async (photos: string[]) => {
         setSelectedPhotos(photos);
         if (sessionId) {
-            await set(
-                ref(database, `sessions/${sessionId}/selectedPhotos`),
-                photos
-            );
+            if (OFFLINE_MODE) {
+                await fetch(`/api/session`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sessionId,
+                        data: {
+                            selectedPhotos: photos,
+                        },
+                    }),
+                });
+            } else {
+                await set(
+                    ref(database, `sessions/${sessionId}/selectedPhotos`),
+                    photos
+                );
+            }
         }
         setCurrentStep("download");
     };
@@ -169,13 +282,24 @@ export default function SoloPage() {
         setSelectedTemplate("");
         setSelectedSubTemplate("");
         if (sessionId) {
-            await remove(ref(database, `sessions/${sessionId}/photos`));
-            await remove(ref(database, `sessions/${sessionId}/template`));
-            await remove(ref(database, `sessions/${sessionId}/style`));
-            await remove(ref(database, `sessions/${sessionId}/selectedPhotos`));
-            await remove(ref(database, `sessions/${sessionId}/compositeImage`));
+            if (OFFLINE_MODE) {
+                await fetch("/api/session", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sessionId }),
+                });
+            } else {
+                await remove(ref(database, `sessions/${sessionId}/photos`));
+                await remove(ref(database, `sessions/${sessionId}/template`));
+                await remove(ref(database, `sessions/${sessionId}/style`));
+                await remove(
+                    ref(database, `sessions/${sessionId}/selectedPhotos`)
+                );
+                await remove(
+                    ref(database, `sessions/${sessionId}/compositeImage`)
+                );
+            }
         }
-        localStorage.removeItem("harapLenteSessionId");
     };
     // Cleanup: Remove sessions older than 1 day
     useEffect(() => {

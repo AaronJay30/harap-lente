@@ -80,6 +80,13 @@ export const subTemplates = {
             preview: "/template/triple/Kawaii(P).png",
         },
         {
+            id: "1x3-kisses",
+            name: "Kisses Theme",
+            description: "Romantic theme with lips and hearts",
+            template: "/template/triple/Kisses.png",
+            preview: "/template/triple/Kisses(P).png",
+        },
+        {
             id: "1x3-halloween",
             name: "Halloween (Boo)",
             description: "Spooky and fun Halloween theme",
