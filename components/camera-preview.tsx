@@ -4,17 +4,56 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import * as blazeface from "@tensorflow-models/blazeface";
+import "@tensorflow/tfjs"; // Must import TF backend
 
 interface CameraPreviewProps {
     onStartCapture: (photoCount: number, timer: number) => void;
 }
 
 export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
+    // Instagram-style filters
+    const filters = [
+        { name: "Normal", value: "none" },
+        { name: "Sepia", value: "sepia(0.7)" },
+        { name: "Saturate", value: "saturate(1.8)" },
+        { name: "Hue Rotate", value: "hue-rotate(90deg)" },
+        { name: "Invert", value: "invert(1)" },
+        { name: "Vintage", value: "contrast(1.1) sepia(0.4)" },
+        { name: "Soft", value: "brightness(1.08) saturate(1.1)" },
+        {
+            name: "Cinematic",
+            value: "contrast(1.3) brightness(0.9) saturate(1.2)",
+        },
+        { name: "B&W Film", value: "grayscale(1) contrast(1.2)" },
+        { name: "Cool Tone", value: "hue-rotate(200deg) saturate(0.8)" },
+        {
+            name: "Warm Glow",
+            value: "sepia(0.3) brightness(1.1) contrast(1.05)",
+        },
+        { name: "Dreamy", value: "brightness(1.1) saturate(1.5)" },
+        { name: "Faded", value: "contrast(0.8) brightness(1.05) sepia(0.2)" },
+        { name: "Moody", value: "brightness(0.8) contrast(1.4)" },
+        { name: "Deep Blue", value: "hue-rotate(240deg) saturate(1.3)" },
+        {
+            name: "Golden Hour",
+            value: "sepia(0.6) brightness(1.1) saturate(1.2)",
+        },
+        {
+            name: "Retro VHS",
+            value: "contrast(1.2) saturate(1.3) hue-rotate(-15deg)",
+        },
+        { name: "Toned Down", value: "grayscale(0.4) brightness(0.95)" },
+        { name: "Glow Up", value: "saturate(1.5) brightness(1.2)" },
+    ];
+
+    const [filter, setFilter] = useState<string>(filters[0].value);
     const [photoCount, setPhotoCount] = useState(5);
     const [timer, setTimer] = useState(4);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [cameraReady, setCameraReady] = useState(false);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         let activeStream: MediaStream | null = null;
@@ -55,6 +94,15 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                     };
                 }
             } catch (error) {
+                {
+                    /* Canvas overlay for detections */
+                }
+                <canvas
+                    ref={canvasRef}
+                    width={640}
+                    height={480}
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                />;
                 console.error("Error accessing camera:", error);
             }
         };
@@ -76,44 +124,79 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                 <p className="text-amber-700">
                     Position yourself in the camera and click start when ready
                 </p>
+                <Button
+                    onClick={() => onStartCapture(photoCount, timer)}
+                    disabled={!cameraReady}
+                    className="bg-amber-900 hover:bg-amber-800 text-white px-12 py-4 text-xl font-semibold tracking-wide shadow-lg disabled:opacity-50 border-2 border-amber-900 mt-4"
+                >
+                    <Play className="mr-3 h-6 w-6" />
+                    Start Photo Session
+                </Button>
             </div>
 
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 <Card className="mb-6 overflow-hidden">
                     <CardContent className="p-0 relative">
-                        <div className="aspect-[4/3] bg-gray-900 flex items-center justify-center relative">
-                            {!cameraReady && (
-                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
-                                    <div className="text-white text-center">
-                                        <Camera className="h-12 w-12 mx-auto mb-4 animate-pulse" />
-                                        <p>Starting camera...</p>
+                        <div className="flex flex-col md:flex-row bg-gray-900 relative">
+                            {/* Video Section */}
+                            <div className="relative w-full md:w-3/4 aspect-[4/3] flex items-center justify-center">
+                                {!cameraReady && (
+                                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+                                        <div className="text-white text-center">
+                                            <Camera className="h-12 w-12 mx-auto mb-4 animate-pulse" />
+                                            <p>Starting camera...</p>
+                                        </div>
                                     </div>
+                                )}
+
+                                <video
+                                    ref={videoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    className="w-full h-full object-cover"
+                                    style={{ filter }}
+                                />
+                                <canvas
+                                    ref={canvasRef}
+                                    width={640}
+                                    height={480}
+                                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                                />
+                                <div className="absolute inset-0 border-8 border-amber-200 opacity-30 pointer-events-none"></div>
+                                <div className="absolute top-4 left-4 right-4 bottom-4 border-2 border-amber-300 opacity-20 pointer-events-none"></div>
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="w-48 h-48 border-2 border-white border-dashed rounded-full opacity-30"></div>
                                 </div>
-                            )}
-
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                className="w-full h-full object-cover"
-                            />
-
-                            {/* Vintage frame overlay */}
-                            <div className="absolute inset-0 border-8 border-amber-200 opacity-30 pointer-events-none"></div>
-                            <div className="absolute top-4 left-4 right-4 bottom-4 border-2 border-amber-300 opacity-20 pointer-events-none"></div>
-
-                            {/* Center guide */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="w-48 h-48 border-2 border-white border-dashed rounded-full opacity-30"></div>
+                                <img
+                                    src="/images/harap-lente-logo.png"
+                                    alt="Harap Lente Logo"
+                                    className="absolute bottom-2 -right-5 w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
+                                />
                             </div>
 
-                            {/* Harap Lente logo in lower right */}
-                            <img
-                                src="/images/harap-lente-logo.png"
-                                alt="Harap Lente Logo"
-                                className="absolute bottom-2 -right-5 w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
-                            />
+                            {/* Filter Thumbnails */}
+                            <div className="w-full md:w-1/4 bg-white/90 overflow-y-auto max-h-[500px] border-l border-amber-300 px-3 py-4 space-y-3">
+                                {filters.map((f) => (
+                                    <button
+                                        key={f.name}
+                                        onClick={() => setFilter(f.value)}
+                                        className={`flex flex-col items-center w-full p-2 rounded border text-sm font-medium ${
+                                            filter === f.value
+                                                ? "bg-amber-700 text-white border-amber-700"
+                                                : "bg-white text-amber-900 border-amber-300"
+                                        }`}
+                                    >
+                                        <img
+                                            src="/sample.jpg"
+                                            alt={f.name}
+                                            className="w-full h-24 object-cover rounded mb-1"
+                                            style={{ filter: f.value }}
+                                        />
+                                        {f.name}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -169,14 +252,6 @@ export function CameraPreview({ onStartCapture }: CameraPreviewProps) {
                             />
                         </div>
                     </div>
-                    <Button
-                        onClick={() => onStartCapture(photoCount, timer)}
-                        disabled={!cameraReady}
-                        className="bg-amber-900 hover:bg-amber-800 text-white px-12 py-4 text-xl font-semibold tracking-wide shadow-lg disabled:opacity-50 border-2 border-amber-900"
-                    >
-                        <Play className="mr-3 h-6 w-6" />
-                        Start Photo Session
-                    </Button>
                     <style jsx>{`
                         .retro-box {
                             font-family: "Courier New", Courier, monospace;

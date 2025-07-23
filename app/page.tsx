@@ -33,7 +33,7 @@ export default function HomePage() {
                             alt="Harap Lente"
                             width={800}
                             height={400}
-                            className="mx-auto w-64 md:w-80 lg:w-[42rem] mb-0 lg:-mb-14 h-auto filter drop-shadow-2xl"
+                            className="mx-auto w-96 md:w-80 lg:w-[42rem] mb-0 lg:-mb-14 h-auto filter drop-shadow-2xl"
                             priority
                         />
                     </div>
