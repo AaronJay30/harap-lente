@@ -75,7 +75,7 @@ export function TemplateSelector({ onTemplateSelect }: TemplateSelectorProps) {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-4 mb-8">
                 {templates.map((template) => (
                     <Card
                         key={template.id}
@@ -91,7 +91,7 @@ export function TemplateSelector({ onTemplateSelect }: TemplateSelectorProps) {
                                 <img
                                     src={template.preview || "/placeholder.svg"}
                                     alt={template.name}
-                                    className="w-full h-full object-cover rounded-lg"
+                                    className="w-auto md:w-full h-56 md:h-full object-cover rounded-lg"
                                 />
                             </div>
                             <h3 className="font-bold text-amber-900 mb-1">

@@ -16,15 +16,15 @@ export const subTemplates = {
             id: "1x1-plain",
             name: "Plain",
             description: "Minimal plain style",
-            template: "/template/Single/plain.png",
-            preview: "/template/Single/plain(P).png",
+            template: "/template/Single/Plain.png",
+            preview: "/template/Single/Plain(P).png",
         },
         {
             id: "1x1-paper",
             name: "Paper",
             description: "Simple paper style",
-            template: "/template/Single/paper.png",
-            preview: "/template/Single/paper(P).png",
+            template: "/template/Single/Paper.png",
+            preview: "/template/Single/Paper(P).png",
         },
         {
             id: "1x1-sky",
@@ -69,36 +69,36 @@ export const subTemplates = {
             id: "1x3-plain",
             name: "Plain Triple",
             description: "Simple classic layout",
-            template: "/template/triple/Plain.png",
-            preview: "/template/triple/Plain(P).png",
+            template: "/template/Triple/Plain.png",
+            preview: "/template/Triple/Plain(P).png",
         },
         {
             id: "1x3-kawaii",
             name: "Kawaii Theme",
             description: "Cute and colorful style",
-            template: "/template/triple/Kawaii.png",
-            preview: "/template/triple/Kawaii(P).png",
+            template: "/template/Triple/Kawaii.png",
+            preview: "/template/Triple/Kawaii(P).png",
         },
         {
             id: "1x3-kisses",
             name: "Kisses Theme",
             description: "Romantic theme with lips and hearts",
-            template: "/template/triple/Kisses.png",
-            preview: "/template/triple/Kisses(P).png",
+            template: "/template/Triple/Kisses.png",
+            preview: "/template/Triple/Kisses(P).png",
         },
         {
             id: "1x3-halloween",
             name: "Halloween (Boo)",
             description: "Spooky and fun Halloween theme",
-            template: "/template/triple/Boo.png",
-            preview: "/template/triple/Boo(P).png",
+            template: "/template/Triple/Boo.png",
+            preview: "/template/Triple/Boo(P).png",
         },
         {
             id: "1x3-vintage",
             name: "Vintage Theme",
             description: "Classic sepia and ornate border",
-            template: "/template/triple/Vintage.png",
-            preview: "/template/triple/Vintage(P).png",
+            template: "/template/Triple/Vintage.png",
+            preview: "/template/Triple/Vintage(P).png",
         },
     ],
     "1x4-strip": [
@@ -181,7 +181,7 @@ export function SubTemplateSelector({
                 )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-6 mb-8">
                 {availableSubTemplates.map((subTemplate) => (
                     <Card
                         key={subTemplate.id}
@@ -200,7 +200,7 @@ export function SubTemplateSelector({
                                         "/placeholder.svg"
                                     }
                                     alt={subTemplate.name}
-                                    className="w-full h-full object-cover rounded-lg"
+                                    className="w-auto md:w-full h-56 md:h-full object-cover rounded-lg"
                                 />
                             </div>
                             <h3 className="font-bold text-amber-900 mb-1">
