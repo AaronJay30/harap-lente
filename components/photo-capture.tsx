@@ -324,7 +324,7 @@ export function PhotoCapture({
                             <img
                                 src="/images/harap-lente-logo.png"
                                 alt="Harap Lente Logo"
-                                className="absolute bottom-2 -right-5 w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
+                                className="absolute bottom-2 -right-2 md:-right-5 w-32 md:w-52 h-auto opacity-90 drop-shadow-lg pointer-events-none"
                             />
                         </div>
                     </CardContent>

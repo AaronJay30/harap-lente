@@ -11,7 +11,7 @@ export function DownloadImage() {
     const [showModal, setShowModal] = useState(false);
     const [template, setTemplate] = useState<string>("");
     const modalRef = useRef<HTMLDivElement>(null);
-    
+
     useEffect(() => {
         const sessionId = localStorage.getItem("harapLenteSessionId");
         if (!sessionId) {
@@ -59,6 +59,26 @@ export function DownloadImage() {
         link.href = imageUrl;
         link.click();
     };
+
+    // Responsive style for modal image
+    let modalImageStyle: React.CSSProperties = {
+        maxWidth: "100%",
+        width: "100%",
+        objectFit: "contain",
+    };
+    if (template === "1x4-strip") {
+        modalImageStyle = {
+            ...modalImageStyle,
+            maxHeight: "70vh",
+            maxWidth: 350,
+        };
+    } else {
+        modalImageStyle = {
+            ...modalImageStyle,
+            maxHeight: "60vh",
+            maxWidth: 800,
+        };
+    }
 
     return (
         <>
@@ -127,7 +147,7 @@ export function DownloadImage() {
                 >
                     <div
                         ref={modalRef}
-                        className="relative bg-white rounded-xl shadow-2xl p-4 flex flex-col items-center w-full max-w-lg mx-4"
+                        className="relative bg-white rounded-xl shadow-2xl p-2 sm:p-4 flex flex-col items-center w-full max-w-xs sm:max-w-md md:max-w-lg mx-2 sm:mx-4"
                     >
                         <button
                             className="absolute top-2 right-2 text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-full px-3 py-1 font-bold text-lg"
@@ -139,19 +159,8 @@ export function DownloadImage() {
                             <img
                                 src={imageUrl}
                                 alt="Photo strip preview large"
-                                className="rounded-xl shadow-xl border-4 border-amber-200 bg-white"
-                                style={{
-                                    maxWidth: "100%",
-                                    height:
-                                        template === "1x4-strip"
-                                            ? "975px"
-                                            : "auto",
-                                    width:
-                                        template === "1x4-strip"
-                                            ? "350px"
-                                            : "800px",
-                                    objectFit: "contain",
-                                }}
+                                className="rounded-xl shadow-xl border-4 border-amber-200 bg-white w-full h-auto object-contain"
+                                style={modalImageStyle}
                             />
                         </div>
                     </div>
