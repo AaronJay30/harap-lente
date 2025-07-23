@@ -181,7 +181,7 @@ export function SubTemplateSelector({
                 )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 gap-6 mb-8">
                 {availableSubTemplates.map((subTemplate) => (
                     <Card
                         key={subTemplate.id}
@@ -200,7 +200,7 @@ export function SubTemplateSelector({
                                         "/placeholder.svg"
                                     }
                                     alt={subTemplate.name}
-                                    className="w-auto md:w-full h-56 md:h-full object-cover rounded-lg"
+                                    className="w-full h-full object-cover rounded-lg"
                                 />
                             </div>
                             <h3 className="font-bold text-amber-900 mb-1">

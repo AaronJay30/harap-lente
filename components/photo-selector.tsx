@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PhotoComposer } from "@/components/photo-composer";
@@ -37,6 +38,15 @@ export function PhotoSelector({
     // Default: no photos selected so template is visible
     const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
     const [compositeImage, setCompositeImage] = useState<string>("");
+    const LIMIT_ENABLED = process.env.NEXT_PUBLIC_PHOTO_TRY_LIMIT === "true";
+    const [tryCount, setTryCountState] = useState(0);
+
+    useEffect(() => {
+        if (LIMIT_ENABLED && typeof window !== "undefined") {
+            const count = localStorage.getItem("photoTryCount");
+            setTryCountState(count ? parseInt(count, 10) : 0);
+        }
+    }, []);
 
     const handleSelect = (photo: string) => {
         if (selectedPhotos.includes(photo)) {
@@ -50,6 +60,13 @@ export function PhotoSelector({
 
     const handleConfirm = async () => {
         if (compositeImage) {
+            if (LIMIT_ENABLED && typeof window !== "undefined") {
+                const current = parseInt(
+                    localStorage.getItem("photoTryCount") || "0",
+                    10
+                );
+                localStorage.setItem("photoTryCount", (current + 1).toString());
+            }
             const sessionId = localStorage.getItem("harapLenteSessionId");
             if (sessionId) {
                 const OFFLINE_MODE =

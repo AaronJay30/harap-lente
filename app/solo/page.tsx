@@ -45,14 +45,29 @@ export default function SoloPage() {
     const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
     const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
     const [compositeImage, setCompositeImage] = useState<string>("");
+    const MAX_TRIES = parseInt(
+        process.env.NEXT_PUBLIC_PHOTO_TRY_LIMIT_COUNT || "3",
+        10
+    );
+    const LIMIT_ENABLED = process.env.NEXT_PUBLIC_PHOTO_TRY_LIMIT === "true";
 
     useEffect(() => {
-        let id = localStorage.getItem("harapLenteSessionId");
-        if (!id) {
-            id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            localStorage.setItem("harapLenteSessionId", id);
+        let count = 0;
+        if (LIMIT_ENABLED && typeof window !== "undefined") {
+            const storedCount = localStorage.getItem("photoTryCount");
+            count = storedCount ? parseInt(storedCount, 10) : 0;
         }
-        setSessionId(id);
+        if (LIMIT_ENABLED && count >= MAX_TRIES && currentStep !== "download") {
+            localStorage.setItem("showTryLimitModal", "1");
+            window.location.href = "/";
+        } else {
+            let id = localStorage.getItem("harapLenteSessionId");
+            if (!id) {
+                id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                localStorage.setItem("harapLenteSessionId", id);
+            }
+            setSessionId(id);
+        }
     }, []);
 
     // Create initial session record in Firebase when sessionId is set
@@ -281,6 +296,18 @@ export default function SoloPage() {
         setCurrentStep("preview");
         setSelectedTemplate("");
         setSelectedSubTemplate("");
+
+        let count = 0;
+
+        if (LIMIT_ENABLED && typeof window !== "undefined") {
+            const storedCount = localStorage.getItem("photoTryCount");
+            count = storedCount ? parseInt(storedCount, 10) : 0;
+        }
+        if (LIMIT_ENABLED && count >= MAX_TRIES && currentStep !== "download") {
+            localStorage.setItem("showTryLimitModal", "1");
+            window.location.href = "/";
+        }
+
         if (sessionId) {
             if (OFFLINE_MODE) {
                 await fetch("/api/session", {
