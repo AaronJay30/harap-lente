@@ -17,6 +17,34 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { CameraPreview } from "@/components/camera-preview";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+// Custom hook to detect mobile device and orientation
+function useMobileLandscapeWarning() {
+    const [show, setShow] = useState(false);
+    useEffect(() => {
+        function checkOrientation() {
+            const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+            const isPortrait = window.matchMedia(
+                "(orientation: portrait)"
+            ).matches;
+            setShow(isMobile && isPortrait);
+        }
+        checkOrientation();
+        window.addEventListener("orientationchange", checkOrientation);
+        window.addEventListener("resize", checkOrientation);
+        return () => {
+            window.removeEventListener("orientationchange", checkOrientation);
+            window.removeEventListener("resize", checkOrientation);
+        };
+    }, []);
+    return show;
+}
 import { PhotoCapture } from "@/components/photo-capture";
 import { TemplateSelector } from "@/components/template-selector";
 import {
@@ -37,6 +65,12 @@ type SessionStep =
     | "download";
 
 export default function SoloPage() {
+    const [showLandscapeModal, setShowLandscapeModal] = useState(false);
+    const landscapeWarning = useMobileLandscapeWarning();
+    // Control landscape modal open state
+    useEffect(() => {
+        setShowLandscapeModal(landscapeWarning);
+    }, [landscapeWarning]);
     // Generate or retrieve session ID
     const [sessionId, setSessionId] = useState<string>("");
     const [currentStep, setCurrentStep] = useState<SessionStep>("preview");
@@ -384,6 +418,62 @@ export default function SoloPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 relative overflow-hidden">
+            {/* Landscape orientation modal for mobile */}
+            <Dialog
+                open={showLandscapeModal}
+                onOpenChange={setShowLandscapeModal}
+            >
+                <DialogContent className="max-w-xs rounded-2xl p-0 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-100 border-0 shadow-2xl">
+                    <div className="flex flex-col items-center justify-center p-6">
+                        <div className="bg-amber-100 rounded-full p-3 mb-3 shadow-md">
+                            <svg
+                                width="36"
+                                height="36"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="text-amber-500"
+                            >
+                                <rect
+                                    x="3"
+                                    y="7"
+                                    width="18"
+                                    height="10"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                />
+                                <rect
+                                    x="7"
+                                    y="3"
+                                    width="10"
+                                    height="18"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    opacity="0.3"
+                                />
+                            </svg>
+                        </div>
+                        <DialogHeader className="w-full text-center">
+                            <DialogTitle className="text-lg font-extrabold text-amber-900 mb-1 tracking-wide">
+                                Best Viewed in Landscape
+                            </DialogTitle>
+                        </DialogHeader>
+                        <DialogDescription className="text-base text-amber-800 mt-2">
+                            For the best experience, please rotate your device
+                            to landscape mode.
+                        </DialogDescription>
+                        <div className="mt-4 text-center">
+                            <span className="inline-block text-amber-700 bg-amber-100 rounded-lg px-4 py-2 text-sm font-medium shadow-sm">
+                                Tip: For best results and to prevent stretching
+                                of your photo, please use your device in{" "}
+                                <b>landscape orientation</b> when taking
+                                pictures.
+                            </span>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
             {/* Vintage grain overlay */}
             <div
                 className="absolute inset-0 opacity-20 animate-pulse pointer-events-none"

@@ -13,13 +13,37 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 
+// Custom hook to detect mobile device and orientation
+function useMobileLandscapeWarning() {
+    const [show, setShow] = useState(false);
+    useEffect(() => {
+        function checkOrientation() {
+            const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+            const isPortrait = window.matchMedia(
+                "(orientation: portrait)"
+            ).matches;
+            setShow(isMobile && isPortrait);
+        }
+        checkOrientation();
+        window.addEventListener("orientationchange", checkOrientation);
+        window.addEventListener("resize", checkOrientation);
+        return () => {
+            window.removeEventListener("orientationchange", checkOrientation);
+            window.removeEventListener("resize", checkOrientation);
+        };
+    }, []);
+    return show;
+}
+
 const NOISE_BG =
     "url(\"data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3C/defs%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E\")";
 
 export default function HomePage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showTryLimitModal, setShowTryLimitModal] = useState(false);
-    
+    const [showLandscapeModal, setShowLandscapeModal] = useState(false);
+    const landscapeWarning = useMobileLandscapeWarning();
+
     useEffect(() => {
         if (typeof window !== "undefined") {
             if (localStorage.getItem("showTryLimitModal") === "1") {
@@ -29,8 +53,69 @@ export default function HomePage() {
         }
     }, []);
 
+    // Control landscape modal open state
+    useEffect(() => {
+        setShowLandscapeModal(landscapeWarning);
+    }, [landscapeWarning]);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 relative overflow-hidden">
+            {/* Landscape orientation modal for mobile */}
+            <Dialog
+                open={showLandscapeModal}
+                onOpenChange={setShowLandscapeModal}
+            >
+                <DialogContent className="max-w-xs rounded-2xl p-0 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-100 border-0 shadow-2xl">
+                    <div className="flex flex-col items-center justify-center p-6">
+                        <div className="bg-amber-100 rounded-full p-3 mb-3 shadow-md">
+                            <svg
+                                width="36"
+                                height="36"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="text-amber-500"
+                            >
+                                <rect
+                                    x="3"
+                                    y="7"
+                                    width="18"
+                                    height="10"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                />
+                                <rect
+                                    x="7"
+                                    y="3"
+                                    width="10"
+                                    height="18"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    opacity="0.3"
+                                />
+                            </svg>
+                        </div>
+                        <DialogHeader className="w-full text-center">
+                            <DialogTitle className="text-lg font-extrabold text-amber-900 mb-1 tracking-wide">
+                                Best Viewed in Landscape
+                            </DialogTitle>
+                        </DialogHeader>
+                        <DialogDescription className="text-base text-amber-800 mt-2">
+                            For the best experience, please rotate your device
+                            to landscape mode.
+                        </DialogDescription>
+                        <div className="mt-4 text-center">
+                            <span className="inline-block text-amber-700 bg-amber-100 rounded-lg px-4 py-2 text-sm font-medium shadow-sm">
+                                Tip: For best results and to prevent stretching
+                                of your photo, please use your device in{" "}
+                                <b>landscape orientation</b> when taking
+                                pictures.
+                            </span>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
             <Dialog
                 open={showTryLimitModal}
                 onOpenChange={setShowTryLimitModal}
@@ -38,14 +123,35 @@ export default function HomePage() {
                 <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-100 border-0 shadow-2xl">
                     <div className="flex flex-col items-center justify-center p-8">
                         <div className="bg-amber-100 rounded-full p-4 mb-4 shadow-md">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-amber-500"><path d="M12 9v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <svg
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="text-amber-500"
+                            >
+                                <path
+                                    d="M12 9v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
                         </div>
                         <DialogHeader className="w-full text-center">
-                            <DialogTitle className="text-2xl font-extrabold text-amber-900 mb-2 tracking-wide">Limit Reached</DialogTitle>
+                            <DialogTitle className="text-2xl font-extrabold text-amber-900 mb-2 tracking-wide">
+                                Limit Reached
+                            </DialogTitle>
                         </DialogHeader>
                         <DialogDescription className="text-base text-amber-800 mb-6 mt-2">
-                            <span className="block mb-2">You have reached the maximum number of tries.</span>
-                            <span className="block mb-2">To access more tries, please contact me on Facebook:</span>
+                            <span className="block mb-2">
+                                You have reached the maximum number of tries.
+                            </span>
+                            <span className="block mb-2">
+                                To access more tries, please contact me on
+                                Facebook:
+                            </span>
                         </DialogDescription>
                         <a
                             href="https://www.facebook.com/gabato.aaron30"
@@ -53,10 +159,20 @@ export default function HomePage() {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg shadow transition-all duration-200 mb-2"
                         >
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="inline-block"><path d="M22.675 0h-21.35C.595 0 0 .592 0 1.326v21.348C0 23.408.595 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.406 24 24 23.408 24 22.674V1.326C24 .592 23.406 0 22.675 0"/></svg>
+                            <svg
+                                width="22"
+                                height="22"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="inline-block"
+                            >
+                                <path d="M22.675 0h-21.35C.595 0 0 .592 0 1.326v21.348C0 23.408.595 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.406 24 24 23.408 24 22.674V1.326C24 .592 23.406 0 22.675 0" />
+                            </svg>
                             facebook.com/gabato.aaron30
                         </a>
-                        <span className="text-xs text-gray-500 mt-2">Thank you for your interest!</span>
+                        <span className="text-xs text-gray-500 mt-2">
+                            Thank you for your interest!
+                        </span>
                     </div>
                 </DialogContent>
             </Dialog>
